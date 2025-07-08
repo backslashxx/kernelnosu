@@ -1,1 +1,0 @@
-A simple `su` binary for KernelSU that uses a special KernelSU `prctl` to get root. The purpose is to allow disabling the built-in sucompat, which uses detectable kprobe hooks. Only works with this fork!
