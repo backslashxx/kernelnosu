@@ -14,16 +14,18 @@ else
 	abort "[!] $arch not supported!"
 fi
 
+echo "" > "$MODPATH/config.sh"
 
 test_mountify() {
+
 	# routine start
-	echo "[+] mountify"
-	echo "[+] SysReq test"
+	# echo "[+] mountify"
+	# echo "[+] SysReq test"
 
 	# test for overlayfs
 	if grep -q "overlay" /proc/filesystems > /dev/null 2>&1; then \
-		echo "[+] CONFIG_OVERLAY_FS"
-		echo "[+] overlay found in /proc/filesystems"
+		# echo "[+] CONFIG_OVERLAY_FS"
+		# echo "[+] overlay found in /proc/filesystems"
 		MOUNTIFY_REQ=$(( MOUNTIFY_REQ + 1))
 	else
 		# echo "[!] CONFIG_OVERLAY_FS test fail!"
@@ -37,8 +39,8 @@ test_mountify() {
 	rm "$testfile" > /dev/null 2>&1 
 	busybox mknod "$testfile" c 0 0 > /dev/null 2>&1 
 	if busybox setfattr -n trusted.overlay.whiteout -v y "$testfile" > /dev/null 2>&1 ; then 
-		echo "[+] CONFIG_TMPFS_XATTR"
-		echo "[+] tmpfs extended attribute test passed"
+		# echo "[+] CONFIG_TMPFS_XATTR"
+		# echo "[+] tmpfs extended attribute test passed"
 		rm "$testfile" > /dev/null 2>&1 
 		MOUNTIFY_REQ=$(( MOUNTIFY_REQ + 1))
 	else
@@ -49,42 +51,79 @@ test_mountify() {
 
 }
 
-if [ "$KSU_MAGIC_MOUNT" = "true" ]; then
+# for magic mount, we can  test if setup can use mountify
+# though we have to disable this on 3.x as old overlayfs 
+# it does NOT have that selinux inherit thingy
+if [ "$KSU_MAGIC_MOUNT" = "true" ] && [ ! "$(busybox uname -r | cut -d . -f1)" -lt 4 ]; then
 	test_mountify
 fi
 
 if [ "$MOUNTIFY_REQ" = 2 ]; then
-	echo "USE_MOUNTIFY=true" > "$MODPATH/config.sh"
+	echo "USE_MOUNTIFY=true" >> "$MODPATH/config.sh"
+	echo "[+] mountify standalone script will mount su"
 	touch "$MODPATH/skip_mount"
 fi
 
 # overlayfs ksu, /system/bin
 # mksu + mountify /system/bin
-# mksu - mountify /product/bin if it has /product/bin, otherwise /system/bin
+# mksu - mountify, hunt for lowest filecount dir on $PATH
 
 prep_system_bin() {
-	mv -f "$MODPATH/su" "$MODPATH/system/bin/su"
-	rm -rf "$MODPATH/system/product"
+	mkdir -p "$MODPATH/system/bin"
+	cp -f "$MODPATH/su" "$MODPATH/system/bin/su"
 	busybox chcon --reference="/system/bin/sh" "$MODPATH/system/bin/su"
 	chmod 755 "$MODPATH/system/bin/su"
+	echo "[+] su will be on /system/bin"
 }
 
-prep_product_bin() {
-	mv -f "$MODPATH/su" "$MODPATH/system/product/bin/su"
-	rm -rf "$MODPATH/system/bin"
-	busybox chcon --reference="/system/bin/sh" "$MODPATH/system/product/bin/su"
-	chmod 755 "$MODPATH/system/product/bin/su"
+prep_custom_dir() {
+	line=$1
+	if echo "$line" | grep -Eq "^/(product|vendor|odm|system_ext)/" && ! echo "$line" | grep -q "^/system/"; then
+		line="/system$line"
+	fi
+
+	mkdir -p "$MODPATH/$line"
+	cp -f "$MODPATH/su" "$MODPATH/$line/su"
+	busybox chcon --reference="/system/xbin/sh" "$MODPATH/$line/su"
+	chmod 755 "$MODPATH/$line/su"
+	echo "[+] su will be on $line/su"
 }
 
-if { [ "$KSU_MAGIC_MOUNT" = "true" ] && [ "$MOUNTIFY_REQ" = 2 ]; } || [ ! "$KSU_MAGIC_MOUNT" = "true" ]; then
+# small snippet that hunts for folder in $PATH that has lowest number of files!
+# IFS=":" ; for i in $PATH; do [ -d $i ] && find $i -type f | wc -l ; done ??
+hunt_min_dir () {
+IFS_old=$IFS
+IFS=":" 
+	min=99999
+	min_dir=""
+
+	for i in $PATH; do
+		# skip useless
+		echo "$i" | grep -qE "^/apex|ksu" && continue
+		[ -d "$i" ] || continue
+
+		count=$(busybox find "$i" -type f 2>/dev/null | wc -l)
+		# debug
+		echo "[-] $count $i"
+		if [ "$count" -lt "$min" ]; then
+			min=$count
+			min_dir=$i
+		fi
+	done
+
+	echo "[+] lowest file count dir: $min_dir ($min files)"
+	
+# reset IFS
+IFS=$IFS_old
+
+	prep_custom_dir "$min_dir"
+
+}
+
+if [ ! "$KSU_MAGIC_MOUNT" = "true" ]; then
 	prep_system_bin
 else
-	if [ -d "/product/bin" ] || [ -d "/system/product/bin" ]; then
-		prep_product_bin
-	else
-		prep_system_bin
-	fi
-	
+	hunt_min_dir
 fi
 
 # so mountify won't mount this always
