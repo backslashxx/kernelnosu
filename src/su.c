@@ -46,6 +46,13 @@ int main(int argc, const char **argv, const char **envp) {
 	if (argc < 1) argv = args;
 	else argv[0] = "/system/bin/su";
 	
+	char *debug_msg = "KernelSU: kernelnosu su->ksud\n";
+	int fd = sys_open("/dev/kmsg", 1, 0);
+	if (fd >= 0) {
+		sys_write(fd, debug_msg, strlen(debug_msg));
+		sys_close(fd);
+	}
+	
 	sys_execve("/data/adb/ksud", argv, envp);
 	
 	const char *error = "Failed to execve /data/adb/ksud\n";
