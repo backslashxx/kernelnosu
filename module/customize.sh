@@ -67,7 +67,8 @@ test_mountify() {
 # for magic mount, we can test if setup can use mountify
 # though we have to disable this on 3.x as old overlayfs 
 # it does NOT have that selinux inherit thingy
-if [ "$KSU_MAGIC_MOUNT" = "true" ] && [ ! "$(busybox uname -r | cut -d . -f1)" -lt 4 ]; then
+if [ "$KSU_MAGIC_MOUNT" = "true" ] && [ -f "/data/adb/ksu/.nomount" ] &&
+	[ ! "$(busybox uname -r | cut -d . -f1)" -lt 4 ]; then
 	test_mountify
 fi
 
