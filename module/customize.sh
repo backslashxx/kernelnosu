@@ -11,13 +11,21 @@ fi
 # this assumes CONFIG_COMPAT=y on CONFIG_ARM
 arch=$(busybox uname -m)
 echo "[+] detected: $arch"
-if [ "$arch" = "aarch64" ] || [ "$arch" = "armv7l" ] || [ "$arch" = "armv8l" ]; then
-	ELF_BINARY="su-arm"
-elif [ "$arch" = "x86_64" ]; then
-	ELF_BINARY="su-x64"
-else
-	abort "[!] $arch not supported!"
-fi
+
+case "$arch" in
+	aarch64 | arm64 )
+		ELF_BINARY="su-arm64"
+		;;
+	armv7l | armv8l )
+		ELF_BINARY="su-arm"
+		;;
+	x86_64)
+		ELF_BINARY="su-x64"
+		;;
+	*)
+		abort "[!] $arch not supported!"
+		;;
+esac
 
 echo "#!/bin/sh" > "$MODPATH/config.sh"
 
