@@ -113,7 +113,7 @@ IFS=":"
 
 	for i in $PATH; do
 		# skip useless
-		echo "$i" | grep -qE "^/apex|ksu" && continue
+		echo "$i" | grep -qE "^/apex|^/odm|ksu" && continue
 		[ -d "$i" ] || continue
 
 		count=$(busybox find "$i" -type f 2>/dev/null | wc -l)
