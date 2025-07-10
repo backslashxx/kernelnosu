@@ -1,20 +1,25 @@
 #!/bin/sh
 PATH=/data/adb/ksu/bin:$PATH
 MOUNTIFY_REQ=0
+ELF_BINARY="su-arm"
 
 # subject to change ofcourse
 if [ ! "$KSU" = true ] || [ ! "$KSU_KERNEL_VER_CODE" -ge 12040 ]; then
 	abort "[!] KernelSU 12040+ required!"
 fi
 
+# this assumes CONFIG_COMPAT=y on CONFIG_ARM
 arch=$(busybox uname -m)
+echo "[+] detected: $arch"
 if [ "$arch" = "aarch64" ] || [ "$arch" = "armv7l" ] || [ "$arch" = "armv8l" ]; then
-	echo "[+] detected: $arch"
+	ELF_BINARY="su-arm"
+elif [ "$arch" = "x86_64" ]; then
+	ELF_BINARY="su-x64"
 else
 	abort "[!] $arch not supported!"
 fi
 
-echo "" > "$MODPATH/config.sh"
+echo "#!/bin/sh" > "$MODPATH/config.sh"
 
 test_mountify() {
 
@@ -51,7 +56,7 @@ test_mountify() {
 
 }
 
-# for magic mount, we can  test if setup can use mountify
+# for magic mount, we can test if setup can use mountify
 # though we have to disable this on 3.x as old overlayfs 
 # it does NOT have that selinux inherit thingy
 if [ "$KSU_MAGIC_MOUNT" = "true" ] && [ ! "$(busybox uname -r | cut -d . -f1)" -lt 4 ]; then
@@ -70,7 +75,7 @@ fi
 
 prep_system_bin() {
 	mkdir -p "$MODPATH/system/bin"
-	cp -f "$MODPATH/su" "$MODPATH/system/bin/su"
+	cp -f "$MODPATH/$ELF_BINARY" "$MODPATH/system/bin/su"
 	busybox chcon --reference="/system/bin/sh" "$MODPATH/system/bin/su"
 	chmod 755 "$MODPATH/system/bin/su"
 	echo "[+] su will be on /system/bin"
@@ -83,7 +88,7 @@ prep_custom_dir() {
 	fi
 
 	mkdir -p "$MODPATH/$line"
-	cp -f "$MODPATH/su" "$MODPATH/$line/su"
+	cp -f "$MODPATH/$ELF_BINARY" "$MODPATH/$line/su"
 	busybox chcon --reference="/system/xbin/sh" "$MODPATH/$line/su"
 	chmod 755 "$MODPATH/$line/su"
 	echo "[+] su will be on $line/su"
