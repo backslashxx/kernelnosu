@@ -1,8 +1,9 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-#define O_WRONLY    1
-#define AT_FDCWD   (-100)
+#define O_WRONLY   1
+#define AT_FDCWD  (-100)
+#define SIGSEGV   11
 
 // zig cc -target arm-linux -s -Os su.c -static -Wl,--gc-sections
 // /tmp/optane/openwrt-mr7350/staging_dir/host/bin/sstrip a.out
@@ -32,11 +33,18 @@ static int strnmatch(const char *a, const char *b, unsigned short count)
 	return 0;
 }
 
+
 static int denied(void)
 {
+	// lets just segfault
+	int pid = syscall(SYS_getpid);
+	return syscall(SYS_tkill, pid, SIGSEGV); // rec by expert975 @ libera
+	// return *(volatile int *)0 = 0; // works but UB
+#if 0
 	const char *error = "Denied\n";
 	syscall(SYS_write, 2, error, 7);
 	return 1;
+#endif
 }
 
 int main(int argc, const char **argv, const char **envp)
