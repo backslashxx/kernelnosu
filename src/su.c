@@ -10,14 +10,16 @@
 
 /*
  * strnmatch, test two strings if they match up to n len
- * just like !!!strncmp
- * 0 = match
- * 1 = not match
- * 
+ *
+ * caller is reposnible for sanity! no \0 check!
+ * returns: 0 = match, 1 = not match
+ *
+ * Usage examples:
+ * for strcmp like behavior, strnmatch(x, y, strlen(y) + 1) (+1 for \0)
+ * for strstarts like behavior strnmatch(x, y, strlen(y))
+ *  
  */
-
-// caller is reposnible for sanity! no \0 check!
-static int strnmatch(const char *a, const char *b, unsigned short count)
+static int strnmatch(const char *a, const char *b, unsigned int count)
 {
 	// og condition was like *a && (*a == *b) && count > 0
 	do {
@@ -56,16 +58,16 @@ int main(int argc, const char **argv, const char **envp)
 {
 	unsigned long result = 0;
 	
-	int is_data_adb = !strnmatch(argv[0], "/data/adb", 9);
+	int is_data = !strnmatch(argv[0], "/data", 5);
 	
-	if (argc >= 2 && is_data_adb
-		&& !strnmatch(argv[1], "--disable-sucompat", 18)) {
+	if (argc >= 2 && is_data
+		&& !strnmatch(argv[1], "--disable-sucompat", 19)) { 
 		syscall(SYS_prctl, 0xdeadbeef, 15L, 0L, 0L, (unsigned long) &result);
 		return 0;
 	}
 
 	// if its called from /data/adb, dont continue!
-	if (is_data_adb)
+	if (is_data)
 	 	return denied();
 
 	syscall(SYS_prctl, 0xdeadbeef, 0L, 0L, 0L, (unsigned long) &result);
@@ -83,7 +85,7 @@ int main(int argc, const char **argv, const char **envp)
 		}
 	}
 
-	argv[0] = "/system/bin/su";
+	argv[0] = "su";
 
 	char *debug_msg = "KernelSU: kernelnosu su->ksud\n";
 	int fd = syscall(SYS_openat, AT_FDCWD, "/dev/kmsg", O_WRONLY, 0);
