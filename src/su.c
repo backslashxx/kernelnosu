@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/ioctl.h> 
 #include <fcntl.h>
+// #include <stdio.h>
 
 // zig cc -target arm-linux -s -Os su.c -static -Wl,--gc-sections
 // /tmp/optane/openwrt-mr7350/staging_dir/host/bin/sstrip a.out
@@ -55,11 +56,27 @@ static int denied(void)
 int main(int argc, const char **argv, const char **envp)
 {
 	unsigned long result = 0;
+	unsigned long uid = 0;
 	
 	int is_data = !strnmatch(argv[0], "/data", 5);
-	
 	if (argc >= 2 && is_data
 		&& !strnmatch(argv[1], "--disable-sucompat", 18)) {
+
+		// grab manager uid
+		// no idea though if this will work when manager is uninstalled
+		// it prunes manager uid when uninstalled
+		syscall(SYS_prctl, 0xdeadbeef, 16L, (unsigned long) &uid, 0L, (unsigned long) &result);
+
+		// printf("CMD_GET_MANAGER_UID: 0x%lx - uid: %lu \n", result, uid);
+		// printf("uid before: %d\n", getuid());
+
+		if (result != 0xdeadbeef)
+			return denied();
+			
+		syscall(SYS_setuid, uid);
+
+		// printf("uid after: %d\n", getuid());
+
 		syscall(SYS_prctl, 0xdeadbeef, 15L, 0L, 0L, (unsigned long) &result);
 		return 0;
 	}
