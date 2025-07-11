@@ -56,16 +56,16 @@ int main(int argc, const char **argv, const char **envp)
 {
 	unsigned long result = 0;
 	
-	int is_data_adb = !strnmatch(argv[0], "/data/adb", 9);
+	int is_data = !strnmatch(argv[0], "/data", 5);
 	
-	if (argc >= 2 && is_data_adb
+	if (argc >= 2 && is_data
 		&& !strnmatch(argv[1], "--disable-sucompat", 18)) {
 		syscall(SYS_prctl, 0xdeadbeef, 15L, 0L, 0L, (unsigned long) &result);
 		return 0;
 	}
 
 	// if its called from /data/adb, dont continue!
-	if (is_data_adb)
+	if (is_data)
 	 	return denied();
 
 	syscall(SYS_prctl, 0xdeadbeef, 0L, 0L, 0L, (unsigned long) &result);
@@ -83,7 +83,7 @@ int main(int argc, const char **argv, const char **envp)
 		}
 	}
 
-	argv[0] = "/system/bin/su";
+	argv[0] = "su";
 
 	char *debug_msg = "KernelSU: kernelnosu su->ksud\n";
 	int fd = syscall(SYS_openat, AT_FDCWD, "/dev/kmsg", O_WRONLY, 0);
