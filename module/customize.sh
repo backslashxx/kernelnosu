@@ -134,7 +134,7 @@ IFS=$IFS_old
 
 }
 
-if [ ! "$KSU_MAGIC_MOUNT" = "true" ]; then
+if [ ! "$KSU_MAGIC_MOUNT" = "true" ] || [ "$MOUNTIFY_REQ" = 2 ]; then
 	prep_system_bin
 else
 	hunt_min_dir
