@@ -70,6 +70,10 @@ test_mountify() {
 if [ "$KSU_MAGIC_MOUNT" = "true" ] && [ -f "/data/adb/ksu/.nomount" ] &&
 	[ ! "$(busybox uname -r | cut -d . -f1)" -lt 4 ]; then
 	test_mountify
+	
+	if [ ! "$MOUNTIFY_REQ" = 2 ]; then
+		abort "[!] please disable .nomount first!"
+	fi
 fi
 
 if [ "$MOUNTIFY_REQ" = 2 ]; then
