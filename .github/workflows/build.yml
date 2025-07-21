@@ -25,15 +25,18 @@ jobs:
 
       - name: compile su via zigcc
         run: |
-          ls -la ; pwd
           echo "arm, aarch64 and x86_64"
+          pwd
           chmod +x sstrip
           ./zig/zig cc -target arm-linux -s -Oz src/su.c -static -s -Wl,--gc-sections -o module/su-arm
           ./zig/zig cc -target aarch64-linux -s -Oz src/su.c -static -s -Wl,--gc-sections -o module/su-arm64
           ./zig/zig cc -target x86_64-linux -s -Oz src/su.c -static -s -Wl,--gc-sections -o module/su-x64
+          wc -c module/su-*
           ./sstrip module/su-arm64
           ./sstrip module/su-arm
           ./sstrip module/su-x64
+          wc -c module/su-*
+          file module/su-*
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
