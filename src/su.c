@@ -60,10 +60,25 @@ int main(int argc, const char **argv, const char **envp)
 	
 	int is_data = !strnmatch(argv[0], "/data", 5);
 	
-	if (argc >= 2 && is_data
-		&& !strnmatch(argv[1], "--disable-sucompat", 19)) { 
-		syscall(SYS_prctl, 0xdeadbeef, 15L, 0L, 0L, (unsigned long) &result);
-		return 0;
+	if (argc >= 2 && is_data) {
+		if (!strnmatch(argv[1], "--disable-sucompat", 19)) { 
+			syscall(SYS_prctl, 0xdeadbeef, 15L, 0L, 0L, (unsigned long) &result);
+			return 0;
+		}
+
+		// since theres massive feature fragmentation on ksu forks
+		// we can't just rely on version checking for shit
+		// we need to actually test for this feature instead
+		if (!strnmatch(argv[1], "--test-15", 10)) { 
+			syscall(SYS_prctl, 0xdeadbeef, 15L, 0L, 0L, (unsigned long) &result);
+			if (result == 0xdeadbeef) {
+				// enable it again, check is arg3 !=0
+				syscall(SYS_prctl, 0xdeadbeef, 15L, 1L, 0L, (unsigned long) &result);
+				//syscall(SYS_write, 2, "ok\n", 3);
+				return 0;
+			} else
+				return denied();
+		}
 	}
 
 	// if its called from /data/adb, dont continue!
