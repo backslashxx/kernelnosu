@@ -3,9 +3,8 @@ PATH=/data/adb/ksu/bin:$PATH
 MOUNTIFY_REQ=0
 ELF_BINARY="su-arm"
 
-# subject to change ofcourse
-if [ ! "$KSU" = true ] || [ ! "$KSU_KERNEL_VER_CODE" -ge 12040 ]; then
-	abort "[!] KernelSU 12040+ required!"
+if [ ! "$KSU" = true ]; then
+	abort "[!] KernelSU only!"
 fi
 
 # this assumes CONFIG_COMPAT=y on CONFIG_ARM
@@ -142,6 +141,11 @@ if [ ! "$KSU_MAGIC_MOUNT" = "true" ] || [ "$MOUNTIFY_REQ" = 2 ]; then
 	prep_system_bin
 else
 	hunt_min_dir
+fi
+
+SU_BINARY="$(busybox find $MODPATH/system -name "su")"
+if [ -f "$SU_BINARY" ]; then
+	"$SU_BINARY" --test-15 >/dev/null 2>&1 || abort "[!] Feature not implemented!"
 fi
 
 # so mountify won't mount this always
