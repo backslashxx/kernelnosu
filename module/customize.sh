@@ -101,7 +101,7 @@ prep_custom_dir() {
 
 	mkdir -p "$MODPATH/$line"
 	cp -f "$MODPATH/$ELF_BINARY" "$MODPATH/$line/su"
-	busybox chcon --reference="/system/xbin/sh" "$MODPATH/$line/su"
+	busybox chcon --reference="/system/bin/sh" "$MODPATH/$line/su"
 	chmod 755 "$MODPATH/$line/su"
 	echo "[+] su will be on $line/su"
 }
