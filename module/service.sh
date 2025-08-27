@@ -7,11 +7,6 @@ SU_BINARY="$(busybox find $MODDIR/system -name "su")"
 
 [ -f "$MODDIR/config.sh" ] && . "$MODDIR/config.sh" 
 
-# wait for boot-complete
-until [ "$(getprop sys.boot_completed)" = "1" ]; do
-	sleep 1
-done
-
 if [ "$USE_MOUNTIFY" = "true" ]; then
 	sh "$MODDIR/mountify_standalone.sh" 
 fi
