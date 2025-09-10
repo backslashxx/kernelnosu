@@ -115,8 +115,9 @@ IFS=":"
 	min_dir=""
 
 	for i in $PATH; do
-		# skip useless
-		echo "$i" | grep -qE "^/apex|^/data|^/odm|^/sbin" && continue
+		# https://github.com/5ec1cff/KernelSU/blob/main/userspace/ksud/src/installer.sh#L392
+		# only allow magic mount-able paths
+		echo "$i" | grep -qE "^/system/|^/vendor/|^/product/|^/system_ext/" || continue
 		[ -d "$i" ] || continue
 
 		count=$(busybox find "$i" -type f 2>/dev/null | wc -l)
