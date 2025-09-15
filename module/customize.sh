@@ -1,6 +1,5 @@
 #!/bin/sh
 PATH=/data/adb/ksu/bin:$PATH
-MOUNTIFY_REQ=0
 ELF_BINARY="su-arm"
 
 if [ ! "$KSU" = true ]; then
@@ -26,64 +25,8 @@ case "$arch" in
 		;;
 esac
 
-echo "#!/bin/sh" > "$MODPATH/config.sh"
-
-test_mountify() {
-
-	# routine start
-	# echo "[+] mountify"
-	# echo "[+] SysReq test"
-
-	# test for overlayfs
-	if grep -q "overlay" /proc/filesystems > /dev/null 2>&1; then \
-		# echo "[+] CONFIG_OVERLAY_FS"
-		# echo "[+] overlay found in /proc/filesystems"
-		MOUNTIFY_REQ=$(( MOUNTIFY_REQ + 1))
-	else
-		# echo "[!] CONFIG_OVERLAY_FS test fail!"
-		return
-	fi
-
-	# test for tmpfs xattr
-	[ -w /mnt ] && MNT_FOLDER=/mnt
-	[ -w /mnt/vendor ] && MNT_FOLDER=/mnt/vendor
-	testfile="$MNT_FOLDER/tmpfs_xattr_testfile"
-	rm "$testfile" > /dev/null 2>&1 
-	busybox mknod "$testfile" c 0 0 > /dev/null 2>&1 
-	if busybox setfattr -n trusted.overlay.whiteout -v y "$testfile" > /dev/null 2>&1 ; then 
-		# echo "[+] CONFIG_TMPFS_XATTR"
-		# echo "[+] tmpfs extended attribute test passed"
-		rm "$testfile" > /dev/null 2>&1 
-		MOUNTIFY_REQ=$(( MOUNTIFY_REQ + 1))
-	else
-		rm "$testfile" > /dev/null 2>&1 
-		# echo "[!] CONFIG_TMPFS_XATTR test fail!"
-		return
-	fi
-
-}
-
-# for magic mount, we can test if setup can use mountify
-# though we have to disable this on 3.x as old overlayfs 
-# it does NOT have that selinux inherit thingy
-if [ "$KSU_MAGIC_MOUNT" = "true" ] && [ -f "/data/adb/ksu/.nomount" ] &&
-	[ ! "$(busybox uname -r | cut -d . -f1)" -lt 4 ]; then
-	test_mountify
-	
-	if [ ! "$MOUNTIFY_REQ" = 2 ]; then
-		abort "[!] please disable .nomount first!"
-	fi
-fi
-
-if [ "$MOUNTIFY_REQ" = 2 ]; then
-	echo "USE_MOUNTIFY=true" >> "$MODPATH/config.sh"
-	echo "[+] mountify standalone script will mount su"
-	touch "$MODPATH/skip_mount"
-fi
-
 # overlayfs ksu, /system/bin
-# mksu + mountify /system/bin
-# mksu - mountify, hunt for lowest filecount dir on $PATH
+# mksu, hunt for lowest filecount dir on $PATH
 
 prep_system_bin() {
 	mkdir -p "$MODPATH/system/bin"
@@ -138,7 +81,7 @@ IFS=$IFS_old
 
 }
 
-if [ ! "$KSU_MAGIC_MOUNT" = "true" ] || [ "$MOUNTIFY_REQ" = 2 ]; then
+if [ ! "$KSU_MAGIC_MOUNT" = "true" ]; then
 	prep_system_bin
 else
 	hunt_min_dir
@@ -148,8 +91,5 @@ SU_BINARY="$(busybox find $MODPATH/system -name "su")"
 if [ -f "$SU_BINARY" ]; then
 	"$SU_BINARY" --test-15 >/dev/null 2>&1 || abort "[!] Feature not implemented!"
 fi
-
-# so mountify won't mount this always
-touch "$MODPATH/skip_mountify"
 
 # EOF
