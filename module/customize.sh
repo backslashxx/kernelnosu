@@ -25,16 +25,7 @@ case "$arch" in
 		;;
 esac
 
-# overlayfs ksu, /system/bin
-# mksu, hunt for lowest filecount dir on $PATH
-
-prep_system_bin() {
-	mkdir -p "$MODPATH/system/bin"
-	cp -f "$MODPATH/$ELF_BINARY" "$MODPATH/system/bin/su"
-	busybox chcon --reference="/system/bin/sh" "$MODPATH/system/bin/su"
-	chmod 755 "$MODPATH/system/bin/su"
-	echo "[+] su will be on /system/bin"
-}
+# hunt for lowest filecount dir on $PATH
 
 prep_custom_dir() {
 	line=$1
@@ -81,15 +72,10 @@ IFS=$IFS_old
 
 }
 
-if [ ! "$KSU_MAGIC_MOUNT" = "true" ]; then
-	prep_system_bin
-else
-	hunt_min_dir
-fi
+# test teh feature
+busybox chmod +x "$MODPATH/$ELF_BINARY"
+"$MODPATH/$ELF_BINARY" --test-15 >/dev/null 2>&1 || abort "[!] Feature not implemented!"
 
-SU_BINARY="$(busybox find $MODPATH/system -name "su")"
-if [ -f "$SU_BINARY" ]; then
-	"$SU_BINARY" --test-15 >/dev/null 2>&1 || abort "[!] Feature not implemented!"
-fi
+hunt_min_dir
 
 # EOF
