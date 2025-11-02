@@ -4,7 +4,7 @@ A simple `su` binary for KernelSU that uses a special KernelSU `prctl` to get ro
 The purpose is to replace built-in sucompat, which uses detectable kprobe hooks.
 
 
-Requires: [kernel: core_hook: add support for KernelNoSU](https://github.com/backslashxx/KernelSU/commit/5084a80ec4b6de56ea080628af5de15a54d8fea9)
+Requires: [kernel: supercall: lift permissions for KernelNoSU](https://github.com/tiann/KernelSU/commit/07ffa9f3224dea0ca461c421cc8d6d860956d49b)
 
 - original work by nampud
 
