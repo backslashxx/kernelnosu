@@ -68,7 +68,8 @@ int main(int argc, const char **argv, const char **envp)
 {
 	int is_data = !strnmatch(argv[0], "/data", 5);
 	int fd = 0; 
-	int ret = syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, (void *)&fd);
+	
+	syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, (void *)&fd);
 
 	if (fd == 0)
 		return denied();
@@ -77,12 +78,6 @@ int main(int argc, const char **argv, const char **envp)
 		struct ksu_enable_su_cmd cmd = { 0 };
 		if (!strnmatch(argv[1], "--disable-sucompat", 19)) { 
 			cmd.enable = 0;
-			syscall(SYS_ioctl, fd, KSU_IOCTL_ENABLE_SU, &cmd);
-			syscall(SYS_close, fd);
-			return 0;
-		}
-		if (!strnmatch(argv[1], "--enable-sucompat", 18)) { 
-			cmd.enable = 1;
 			syscall(SYS_ioctl, fd, KSU_IOCTL_ENABLE_SU, &cmd);
 			syscall(SYS_close, fd);
 			return 0;
@@ -103,8 +98,8 @@ int main(int argc, const char **argv, const char **envp)
 		}
 	}
 
-	ret = syscall(SYS_ioctl, fd, KSU_IOCTL_GRANT_ROOT, 0);
-	syscall(SYS_close, fd); 
+	int ret = syscall(SYS_ioctl, fd, KSU_IOCTL_GRANT_ROOT, 0);
+	syscall(SYS_close, fd); // close it here regardless
 	if (ret < 0)
 		return denied();
 
