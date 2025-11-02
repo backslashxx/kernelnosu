@@ -53,40 +53,23 @@ static int denied(void)
  *
  * * not on aarch64!
  */
+ 
+
+#define KSU_INSTALL_MAGIC1 0xDEADBEEF
+#define KSU_INSTALL_MAGIC2 0xCAFEBABE
+#define KSU_IOCTL_GRANT_ROOT _IO('K', 1)
 
 int main(int argc, const char **argv, const char **envp)
 {
-	unsigned long result = 0;
-	
-	int is_data = !strnmatch(argv[0], "/data", 5);
-	
-	if (argc >= 2 && is_data) {
-		if (!strnmatch(argv[1], "--disable-sucompat", 19)) { 
-			syscall(SYS_prctl, 0xdeadbeef, 15L, 0L, 0L, (unsigned long) &result);
-			return 0;
-		}
+	int fd = 0; 
 
-		// since theres massive feature fragmentation on ksu forks
-		// we can't just rely on version checking for shit
-		// we need to actually test for this feature instead
-		if (!strnmatch(argv[1], "--test-15", 10)) { 
-			syscall(SYS_prctl, 0xdeadbeef, 15L, 0L, 0L, (unsigned long) &result);
-			if (result == 0xdeadbeef) {
-				// enable it again, check is arg3 !=0
-				syscall(SYS_prctl, 0xdeadbeef, 15L, 1L, 0L, (unsigned long) &result);
-				//syscall(SYS_write, 2, "ok\n", 3);
-				return 0;
-			} else
-				return denied();
-		}
-	}
+	int ret = syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, (void *)&fd);
 
-	// if its called from /data/adb, dont continue!
-	if (is_data)
-	 	return denied();
+	if (fd == 0)
+		return denied();
 
-	syscall(SYS_prctl, 0xdeadbeef, 0L, 0L, 0L, (unsigned long) &result);
-	if (result != 0xdeadbeef)
+	ret = syscall(SYS_ioctl, fd, KSU_IOCTL_GRANT_ROOT, 0);
+	if (ret < 0)
 		return denied();
 
 	struct termios t;
@@ -103,7 +86,7 @@ int main(int argc, const char **argv, const char **envp)
 	argv[0] = "su";
 
 	char *debug_msg = "KernelSU: kernelnosu su->ksud\n";
-	int fd = syscall(SYS_openat, AT_FDCWD, "/dev/kmsg", O_WRONLY, 0);
+	fd = syscall(SYS_openat, AT_FDCWD, "/dev/kmsg", O_WRONLY, 0);
 	if (fd >= 0) {
 		syscall(SYS_write, fd, debug_msg, strlen(debug_msg));
 		syscall(SYS_close, fd);
