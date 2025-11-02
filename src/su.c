@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/ioctl.h> 
 #include <fcntl.h>
+#include <stdint.h>
 
 // zig cc -target arm-linux -s -Os su.c -static -Wl,--gc-sections
 // /tmp/optane/openwrt-mr7350/staging_dir/host/bin/sstrip a.out
@@ -54,21 +55,41 @@ static int denied(void)
  * * not on aarch64!
  */
  
+struct ksu_enable_su_cmd {
+	uint8_t enable; // Input: true to enable, false to disable
+};
 
 #define KSU_INSTALL_MAGIC1 0xDEADBEEF
 #define KSU_INSTALL_MAGIC2 0xCAFEBABE
 #define KSU_IOCTL_GRANT_ROOT _IO('K', 1)
+#define KSU_IOCTL_ENABLE_SU _IOW('K', 14, struct ksu_enable_su_cmd)
 
 int main(int argc, const char **argv, const char **envp)
 {
 	int fd = 0; 
-
 	int ret = syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, (void *)&fd);
 
 	if (fd == 0)
 		return denied();
 
+	if (argc >= 2) {
+		struct ksu_enable_su_cmd cmd = { 0 };
+		if (!strnmatch(argv[1], "--disable-sucompat", 19)) { 
+			cmd.enable = 0;
+			syscall(SYS_ioctl, fd, KSU_IOCTL_ENABLE_SU, &cmd);
+			syscall(SYS_close, fd);
+			return 0;
+		}
+		if (!strnmatch(argv[1], "--enable-sucompat", 18)) { 
+			cmd.enable = 1;
+			syscall(SYS_ioctl, fd, KSU_IOCTL_ENABLE_SU, &cmd);
+			syscall(SYS_close, fd);
+			return 0;
+		}
+	}
+
 	ret = syscall(SYS_ioctl, fd, KSU_IOCTL_GRANT_ROOT, 0);
+	syscall(SYS_close, fd); // just close whichever happens
 	if (ret < 0)
 		return denied();
 
