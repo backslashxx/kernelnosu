@@ -74,7 +74,7 @@ IFS=$IFS_old
 
 # test teh feature
 busybox chmod +x "$MODPATH/$ELF_BINARY"
-"$MODPATH/$ELF_BINARY" --test-15 >/dev/null 2>&1 || abort "[!] Feature not implemented!"
+"$MODPATH/$ELF_BINARY" --test-sucompat >/dev/null 2>&1 || abort "[!] Feature not implemented!"
 
 hunt_min_dir
 
