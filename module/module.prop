@@ -1,6 +1,7 @@
 id=kernelnosu
 name=KernelNoSU
-version=v0.0.3+
-versionCode=3
-author=nampud
+version=v0.0.5
+versionCode=5
+author=nampud, xx
 description=KernelSU mounted SU binary
+managedFeatures=su_compat
