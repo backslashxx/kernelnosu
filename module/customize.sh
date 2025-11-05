@@ -77,7 +77,9 @@ busybox chmod +x "$MODPATH/$ELF_BINARY"
 "$MODPATH/$ELF_BINARY" --test-15 >/dev/null 2>&1 && touch "$MODPATH/escalate_prctl"
 
 # test ksud if it has a way to disable
-/data/adb/ksud feature list | grep su_compat > /dev/null 2>&1 && touch "$MODPATH/escalate_ioctl"
+if [ "$KSU" = "true" ] && [ "$KSU_KERNEL_VER_CODE" -ge 22004 ]; then
+	/data/adb/ksud feature list | grep su_compat > /dev/null 2>&1 && touch "$MODPATH/escalate_ioctl"
+fi
 
 if [ ! -f "$MODPATH/escalate_prctl" ] && [ ! -f "$MODPATH/escalate_ioctl" ]; then
 	abort "[!] Feature not implemented!"
