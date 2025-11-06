@@ -1,8 +1,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
-#include <termios.h>
 #include <string.h>
-#include <sys/ioctl.h> 
+#include <sys/ioctl.h>
 #include <fcntl.h>
 
 // zig cc -target arm-linux -s -Os su.c -static -Wl,--gc-sections
@@ -78,17 +77,6 @@ int main(int argc, const char **argv, const char **envp)
 	syscall(SYS_close, fd); // close it here regardless
 	if (ret < 0)
 		return denied();
-
-	struct termios t;
-	if (syscall(SYS_ioctl, 0, TCGETS, &t) == 0) {
-		char pts[64];
-		long ps = syscall(SYS_readlinkat, AT_FDCWD, "/proc/self/fd/0", pts, sizeof(pts) - 1);
-		if (ps != -1) {
-			pts[ps] = '\0';
-			const char *ctx = "u:object_r:devpts:s0";
-			syscall(SYS_setxattr, pts, "security.selinux", ctx, strlen(ctx) + 1, 0);
-		}
-	}
 
 	argv[0] = "su";
 
