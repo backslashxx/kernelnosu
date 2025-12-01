@@ -1,45 +1,15 @@
 #include <sys/syscall.h>
 #include <unistd.h>
-#include <string.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 
 // zig cc -target arm-linux -s -Os su.c -static -Wl,--gc-sections
 // /tmp/optane/openwrt-mr7350/staging_dir/host/bin/sstrip a.out
 
-/*
- * strnmatch, test two strings if they match up to n len
- *
- * caller is reposnible for sanity! no \0 check!
- * returns: 0 = match, 1 = not match
- *
- * Usage examples:
- * for strcmp like behavior, strnmatch(x, y, strlen(y) + 1) (+1 for \0)
- * for strstarts like behavior strnmatch(x, y, strlen(y))
- *  
- */
-static int strnmatch(const char *a, const char *b, unsigned int count)
-{
-	// og condition was like *a && (*a == *b) && count > 0
-	do {
-		// if they arent equal
-		if (*a != *b) 
-			return 1;
-		a++;
-		b++;
-		count --;
-	} while (count > 0);
-
-	// we reach here if they match
-	return 0;
-}
-
-static int denied(void)
-{
-	const char *error = "Denied\n";
-	syscall(SYS_write, 2, error, strlen(error));
-	return 1;
-}
+// https://gcc.gnu.org/onlinedocs/gcc/Library-Builtins.html
+// https://clang.llvm.org/docs/LanguageExtensions.html#builtin-functions
+#define memcmp __builtin_memcmp
+#define strlen __builtin_strlen
 
 // ksu's new supercall
 #define KSU_INSTALL_MAGIC1 0xDEADBEEF
@@ -48,13 +18,14 @@ static int denied(void)
 
 int main(int argc, const char **argv, const char **envp)
 {
+	const char *error = "Denied\n";
 	unsigned long result = 0;
 	int fd = 0;
 	
-	int is_data = !strnmatch(argv[0], "/data", 5);
+	int is_data = !memcmp(argv[0], "/data", strlen("/data"));
 	
-	if (argc >= 2 && is_data) {
-		if (!strnmatch(argv[1], "--disable-sucompat", 19)) { 
+	if (is_data) {
+		if (!memcmp(argv[1], "--disable-sucompat", strlen("--disable-sucompat") + 1 )) { 
 			syscall(SYS_prctl, 0xdeadbeef, 15L, 0L, 0L, (unsigned long) &result);
 			return 0;
 		}
@@ -62,7 +33,7 @@ int main(int argc, const char **argv, const char **envp)
 		// since theres massive feature fragmentation on ksu forks
 		// we can't just rely on version checking for shit
 		// we need to actually test for this feature instead
-		if (!strnmatch(argv[1], "--test-15", 10)) { 
+		if (!memcmp(argv[1], "--test-15", strlen("--test-15") + 1)) { 
 			syscall(SYS_prctl, 0xdeadbeef, 15L, 0L, 0L, (unsigned long) &result);
 			if (result == 0xdeadbeef) {
 				// enable it again, check is arg3 !=0
@@ -70,25 +41,23 @@ int main(int argc, const char **argv, const char **envp)
 				//syscall(SYS_write, 2, "ok\n", 3);
 				return 0;
 			} else
-				return denied();
+				goto denied;
 		}
-	}
 
-	// if its called from /data/adb, dont continue!
-	if (is_data)
-	 	return denied();
+		// if its called from /data/adb, dont continue!
+		goto denied;
+	}
 
 	syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, (void *)&fd);
 	if (fd == 0) {
 		// so its likely on old interface, try escalating via prctl
 		syscall(SYS_prctl, 0xdeadbeef, 0L, 0L, 0L, (unsigned long) &result);
 		if (result != 0xdeadbeef)
-			return denied();
+			goto denied;
 	} else {
 		int ret = syscall(SYS_ioctl, fd, KSU_IOCTL_GRANT_ROOT, 0);
-		syscall(SYS_close, fd); // close it here regardless
 		if (ret < 0)
-			return denied();
+			goto denied;
 	}
 
 	argv[0] = "su";
@@ -101,6 +70,8 @@ int main(int argc, const char **argv, const char **envp)
 	}
 
 	syscall(SYS_execve, "/data/adb/ksud", argv, envp);
-	
-	return denied();
+
+denied:	
+	syscall(SYS_write, 2, error, strlen(error));
+	return 1;
 }
