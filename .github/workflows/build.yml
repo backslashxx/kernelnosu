@@ -10,11 +10,10 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: grab zig
-        run: |
-          curl -L https://ziglang.org/builds/zig-x86_64-linux-0.16.0-dev.1484+d0ba6642b.tar.xz -o zig.tar.xz
-          tar -xf zig.tar.xz
-          mv zig-* zig
+      - name: Setup zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: master
 
       - name: grab sstrip from ELFkickers
         run: |
@@ -28,9 +27,10 @@ jobs:
           echo "arm, aarch64 and x86_64"
           pwd
           chmod +x sstrip
-          ./zig/zig cc -target arm-linux -s -Oz src/su.c -static -s -Wl,--gc-sections,-z,norelro -fno-unwind-tables -flto -o module/su-arm
-          ./zig/zig cc -target aarch64-linux -s -Oz src/su.c -static -s -Wl,--gc-sections,-z,norelro -fno-unwind-tables -flto -o module/su-arm64
-          ./zig/zig cc -target x86_64-linux -s -Oz src/su.c -static -s -Wl,--gc-sections,-z,norelro -fno-unwind-tables -flto -o module/su-x64
+          zig cc -target arm-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start src/su.c -o module/su-arm
+          zig cc -target aarch64-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start src/su.c -o module/su-arm64
+          zig cc -target x86_64-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start src/su.c -o module/su-x64
+
           wc -c module/su-*
           ./sstrip module/su-arm64
           ./sstrip module/su-arm
