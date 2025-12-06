@@ -27,14 +27,19 @@ jobs:
           echo "arm, aarch64 and x86_64"
           pwd
           chmod +x sstrip
-          zig cc -target arm-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start src/su.c -o module/su-arm
-          zig cc -target aarch64-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start src/su.c -o module/su-arm64
-          zig cc -target x86_64-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start src/su.c -o module/su-x64
+          
+          cd src
+          
+          zig cc -target arm-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start su.c -o ../module/su-arm
+          zig cc -target aarch64-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start su.c -o ../module/su-arm64
+          zig cc -target x86_64-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start su.c -o ../module/su-x64
+          
+          cd ..
 
           wc -c module/su-*
-          ./sstrip module/su-arm64
-          ./sstrip module/su-arm
-          ./sstrip module/su-x64
+          ./sstrip -z module/su-arm64
+          ./sstrip -z module/su-arm
+          ./sstrip -z module/su-x64
           wc -c module/su-*
           file module/su-*
 
