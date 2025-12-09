@@ -16,45 +16,18 @@
 static int c_main(int argc, char **argv, char **envp)
 {
 	const char *error = "Denied\n";
-	unsigned long result = 0;
 	int fd = 0;
 	
-	int is_data = !memcmp(argv[0], "/data", strlen("/data"));
-	
-	if (is_data) {
-		if (!memcmp(argv[1], "--disable-sucompat", strlen("--disable-sucompat") + 1 )) { 
-			__syscall(SYS_prctl, 0xdeadbeef, 15L, 0L, 0L, (long)&result, NONE);
-			return 0;
-		}
-
-		// since theres massive feature fragmentation on ksu forks
-		// we can't just rely on version checking for shit
-		// we need to actually test for this feature instead
-		if (!memcmp(argv[1], "--test-15", strlen("--test-15") + 1)) { 
-			__syscall(SYS_prctl, 0xdeadbeef, 15L, 0L, 0L, (long)&result, NONE);
-			if (result == 0xdeadbeef) {
-				// enable it again, check is arg3 !=0
-				__syscall(SYS_prctl, 0xdeadbeef, 15L, 1L, 0L, (long)&result, NONE);
-				return 0;
-			} else
-				goto denied;
-		}
-
-		// if its called from /data/adb, dont continue!
+	if (!memcmp(argv[0], "/data", strlen("/data")))
 		goto denied;
-	}
 
 	__syscall(SYS_reboot, KSU_INSTALL_MAGIC1, KSU_INSTALL_MAGIC2, 0, (long)&fd, NONE, NONE);
-	if (fd == 0) {
-		// so its likely on old interface, try escalating via prctl
-		__syscall(SYS_prctl, 0xdeadbeef, 0L, 0L, 0L, (long)&result, NONE);
-		if (result != 0xdeadbeef)
-			goto denied;
-	} else {
-		int ret = __syscall(SYS_ioctl, fd, KSU_IOCTL_GRANT_ROOT, 0, NONE, NONE, NONE);
-		if (ret < 0)
-			goto denied;
-	}
+	if (!fd)
+		goto denied;
+
+	int ret = __syscall(SYS_ioctl, fd, KSU_IOCTL_GRANT_ROOT, 0, NONE, NONE, NONE);
+	if (ret < 0)
+		goto denied;
 
 	argv[0] = "su";
 
@@ -67,7 +40,6 @@ static int c_main(int argc, char **argv, char **envp)
 	}
 
 	const char *ksud = "/data/adb/ksud";
-
 	__syscall(SYS_execve, (long)ksud, (long)argv, (long)envp, NONE, NONE, NONE);
 
 denied:	
