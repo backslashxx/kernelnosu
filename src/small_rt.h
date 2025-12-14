@@ -65,6 +65,7 @@ static long __syscall(long n, long a, long b, long c, long d, long e, long f) {
 #endif
 
 #if 0 // this is here so YOU can copy-paste below C entry
+__attribute__((used))
 void prep_main(long *sp)
 {
 	long argc = *sp;
@@ -73,6 +74,7 @@ void prep_main(long *sp)
 
 	long exit_code = c_main(argc, argv, envp);
 	__syscall(SYS_exit, exit_code, NONE, NONE, NONE, NONE, NONE);
+	__builtin_unreachable();
 }
 #endif
 

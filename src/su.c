@@ -13,6 +13,7 @@
 #define KSU_INSTALL_MAGIC2 0xCAFEBABE
 #define KSU_IOCTL_GRANT_ROOT _IOC(_IOC_NONE, 'K', 1, 0)
 
+__attribute__((always_inline))
 static int c_main(int argc, char **argv, char **envp)
 {
 	const char *error = "Denied\n";
@@ -46,7 +47,7 @@ denied:
 	__syscall(SYS_write, 2, (long)error, strlen(error), NONE, NONE, NONE);
 	return 1;
 }
-
+__attribute__((used))
 void prep_main(long *sp)
 {
 	long argc = *sp;
@@ -55,5 +56,6 @@ void prep_main(long *sp)
 
 	long exit_code = c_main(argc, argv, envp);
 	__syscall(SYS_exit, exit_code, NONE, NONE, NONE, NONE, NONE);
+	__builtin_unreachable();
 }
 
