@@ -30,9 +30,9 @@ jobs:
           
           cd src
           
-          zig cc -target arm-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start su.c -o ../module/su-arm
-          zig cc -target aarch64-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start su.c -o ../module/su-arm64
-          zig cc -target x86_64-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start su.c -o ../module/su-x64
+          zig cc -target arm-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start -flto -fmerge-all-constants su.c -o ../module/su-arm
+          zig cc -target aarch64-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start -flto -fmerge-all-constants su.c -o ../module/su-arm64
+          zig cc -target x86_64-linux -s -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start -flto -fmerge-all-constants su.c -o ../module/su-x64
           
           cd ..
 
