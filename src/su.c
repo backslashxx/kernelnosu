@@ -13,13 +13,14 @@
 #define KSU_INSTALL_MAGIC2 0xCAFEBABE
 #define KSU_IOCTL_GRANT_ROOT _IOC(_IOC_NONE, 'K', 1, 0)
 
+__attribute__((always_inline))
 static int c_main(int argc, char **argv, char **envp)
 {
 	const char *error = "Denied\n";
 	unsigned long result = 0;
 	int fd = 0;
 	
-	int is_data = !memcmp(argv[0], "/data", strlen("/data"));
+	bool is_data = !memcmp(argv[0], "/data", strlen("/data"));
 	
 	if (is_data) {
 		if (!memcmp(argv[1], "--disable-sucompat", strlen("--disable-sucompat") + 1 )) { 
@@ -75,6 +76,7 @@ denied:
 	return 1;
 }
 
+__attribute__((used))
 void prep_main(long *sp)
 {
 	long argc = *sp;
@@ -83,5 +85,6 @@ void prep_main(long *sp)
 
 	long exit_code = c_main(argc, argv, envp);
 	__syscall(SYS_exit, exit_code, NONE, NONE, NONE, NONE, NONE);
+	__builtin_unreachable();
 }
 
