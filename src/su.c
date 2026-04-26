@@ -35,10 +35,8 @@ static int c_main(int argc, char **argv, char **envp)
 	const char *debug_msg = "KernelSU: kernelnosu su->ksud\n";
 	const char *kmsg = "/dev/kmsg";
 	fd = __syscall(SYS_openat, AT_FDCWD, (long)kmsg, O_WRONLY, 0, NONE, NONE);
-	if (fd >= 0) {
+	if (fd >= 0)
 		__syscall(SYS_write, fd, (long)debug_msg, strlen(debug_msg), NONE, NONE, NONE);
-		__syscall(SYS_close, fd, NONE, NONE, NONE, NONE, NONE);
-	}
 
 	const char *ksud = "/data/adb/ksud";
 	__syscall(SYS_execve, (long)ksud, (long)argv, (long)envp, NONE, NONE, NONE);
